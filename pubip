@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# Copyleft GNU GPLv3 Alexandria Pettit
+# I hate shell scripts. I made this just to practice Bash.
+# And also because I really needed a 'public IP' lookup script,
+# and Python was a poor choice for one.
+
+# TODO: add the following lookup methods:
+# curl ifconfig.co
+# curl ifconfig.me
+# host myip.opendns.com resolver1.opendns.com | grep "myip.opendns.com has" | awk '{print $4}'
+# TODO: make it possible to use wget instead of curl
+# TODO: properly comment confusing code
+
+# sanity check
+! getopt --test > /dev/null 
+if [[ ${PIPESTATUS[0]} -ne 4 ]]; then
+    echo "No getopt? Seriously? I thought everyone had that by now."
+    exit 1
+fi
+
+
+
+method='opendns'
+verbose=0
+
+opts=v,m:
+longopts=verbose,method:
+
+[ -r "/etc/pubip.conf" ] && source "/etc/pubip.conf"
+[ -r "$HOME/.pubip.conf" ] && source "$HOME/.pubip.conf"
+
+
+function vecho() {
+    if [ $verbose = 1 ]; then
+        echo "$@"
+    fi
+}
+
+function resolve_ipecho {
+    vecho "Using method ipecho.net"
+    curl "ipecho.net/plain"
+    echo ''
+}
+
+function resolve_akamai {
+    vecho "Using method whatismyip.akamai.com"
+    curl "whatismyip.akamai.com"
+    echo ''
+}
+
+function resolve_opendns {
+    vecho "Using method resolver1.opendns.com"
+    dig +short myip.opendns.com @resolver1.opendns.com
+}
+
+function resolve_icanhazip {
+    vecho "Using method icanhazip.com"
+    curl icanhazip.com
+}
+
+! getopt_output=$(getopt --options=$opts --longoptions=$longopts --name "$0" -- "$@")
+if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+    echo "Something's gone wrong with your getopt."
+    exit 2
+fi
+
+eval set -- "$getopt_output"
+
+while true; do
+    case "$1" in
+        -v|--verbose)
+            verbose=1
+            shift
+            ;;
+        -m|--method)
+            method="$2"
+            shift 2
+            ;;
+        # this character means we're done parsing
+        --)
+            shift
+            break
+            ;;
+        *)
+            echo "Unrecognized option."
+            exit 3
+            ;;
+    esac
+done
+
+case "$method" in
+    ipecho|ip)
+    resolve_ipecho
+    ;;
+    akamai|a)
+    resolve_akamai
+    ;;
+    opendns|o)
+    resolve_opendns
+    ;;
+    icanhazip|ic)
+    resolve_icanhazip
+    ;;
+    *)
+    echo "Error: unrecognized method."
+esac
