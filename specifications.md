@@ -6,6 +6,7 @@ Uses `methods` to acquire IP. Each `method` must present a consistent API on the
 
 * must be very fast
 * supports script hooks for custom methods
+* support ssl requests
 
 ## medium term
 
